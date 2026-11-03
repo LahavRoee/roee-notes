@@ -1,0 +1,17 @@
+{
+  "name": "רועי להב · מחברת דיונים",
+  "short_name": "מחברת",
+  "description": "מחברת כתב יד לאייפד ולעט – תיקיות ושמירה אוטומטית",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#FFF4E6",
+  "theme_color": "#EA580C",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
