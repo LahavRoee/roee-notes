@@ -21,7 +21,8 @@ const ls = {
 
 const FOLDER_COLORS = ['#F97316', '#EA580C', '#F59E0B', '#EF4444', '#EC4899', '#A855F7', '#0EA5E9', '#22C55E'];
 const INK = ['#1C1917', '#EA580C', '#DC2626', '#2563EB', '#16A34A', '#7C3AED', '#DB2777', '#FACC15'];
-const SIZES = { pen: [1.6, 2.8, 5], hi: [14, 22, 34], eraser: [14, 26, 46] };
+const SIZES = { pen: [1.6, 2.8, 5], tip: [10, 18, 30], hi: [14, 22, 34], eraser: [14, 26, 46] };
+const TIP_ANGLE = -Math.PI * 0.22; // flat wide nib, tilted like a chisel marker
 const DOT = [6, 10, 16];
 const PAPERS = [['blank', 'דף חלק'], ['lines', 'שורות'], ['grid', 'משבצות']];
 
@@ -61,7 +62,9 @@ const DB = (() => {
 })();
 
 /* -------------------------------- state -------------------------------- */
-const prefs = Object.assign({ tool: 'pen', col: { pen: INK[0], hi: INK[7] }, sz: { pen: 1, hi: 1, eraser: 1 }, penOnly: true, hinted: false }, ls.get('prefs', {}));
+const prefs = Object.assign({ tool: 'pen', col: {}, sz: {}, penOnly: true, hinted: false }, ls.get('prefs', {}));
+prefs.col = Object.assign({ pen: INK[0], tip: INK[0], hi: INK[7] }, prefs.col);
+prefs.sz = Object.assign({ pen: 1, tip: 1, hi: 1, eraser: 1 }, prefs.sz);
 const S = {
   folders: [], notes: [],
   folderId: ls.get('folder', 'all'), query: '',
@@ -108,6 +111,17 @@ function drawStroke(c, s, mul = 1) {
   const p = s.p, n = p.length / 3;
   if (!n) return;
   c.strokeStyle = s.c; c.fillStyle = s.c; c.lineCap = 'round'; c.lineJoin = 'round';
+  if (s.t === 't') { // wide flat tip: sweep a fixed-angle line segment along the path
+    const dx = Math.cos(TIP_ANGLE) * s.w / 2, dy = Math.sin(TIP_ANGLE) * s.w / 2;
+    c.lineWidth = 0.6; c.lineJoin = 'round';
+    if (n === 1) { c.lineWidth = Math.max(1, s.w * 0.22); c.beginPath(); c.moveTo(p[0] - dx, p[1] - dy); c.lineTo(p[0] + dx, p[1] + dy); c.stroke(); return; }
+    for (let i = 1; i < n; i++) {
+      const ax = p[i * 3 - 3], ay = p[i * 3 - 2], bx = p[i * 3], by = p[i * 3 + 1];
+      c.beginPath(); c.moveTo(ax - dx, ay - dy); c.lineTo(ax + dx, ay + dy); c.lineTo(bx + dx, by + dy); c.lineTo(bx - dx, by - dy); c.closePath();
+      c.fill(); c.stroke();
+    }
+    return;
+  }
   if (n === 1) { c.beginPath(); c.arc(p[0], p[1], widthAt(s, p[2]) * mul / 2, 0, 6.2832); c.fill(); return; }
   if (s.t === 'h') { // highlighter: one translucent path, constant width
     c.globalAlpha = 0.38; c.lineWidth = s.w * mul; c.lineCap = 'butt';
@@ -269,7 +283,7 @@ wrap.addEventListener('pointerdown', (e) => {
   const barrel = e.pointerType === 'pen' && (e.buttons & 32);
   const tool = barrel ? 'eraser' : prefs.tool;
   if (tool === 'eraser') { mode = 'erase'; erased = []; eraseAt(e); }
-  else { mode = 'draw'; cur = { t: tool === 'hi' ? 'h' : 'p', c: prefs.col[tool], w: SIZES[tool][prefs.sz[tool]], p: [] }; addPoints(e); }
+  else { mode = 'draw'; cur = { t: tool === 'hi' ? 'h' : tool === 'tip' ? 't' : 'p', c: prefs.col[tool], w: SIZES[tool][prefs.sz[tool]], p: [] }; addPoints(e); }
 });
 wrap.addEventListener('pointermove', (e) => {
   if (!mode) {
